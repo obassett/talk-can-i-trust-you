@@ -1,0 +1,84 @@
+name: spiffe-talk-demo
+
+# NOTE: this targets SPIRE 1.9.x and the built-in `docker` workload attestor.
+# It's a DEMO setup (privileged agent, insecure bootstrap). See README caveats.
+# Bring it up with ./scripts/bootstrap.sh, not a bare `docker compose up`, because
+# the agent needs a join token generated at runtime.
+
+services:
+  spire-server:
+    image: ghcr.io/spiffe/spire-server:1.9.6
+    hostname: spire-server
+    command: ["-config", "/opt/spire/conf/server/server.conf"]
+    volumes:
+      - ./spire/server/server.conf:/opt/spire/conf/server/server.conf:ro
+      - spire-server-data:/opt/spire/data/server
+    healthcheck:
+      test: ["CMD", "/opt/spire/bin/spire-server", "healthcheck"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  spire-agent:
+    image: ghcr.io/spiffe/spire-agent:1.9.6
+    depends_on:
+      spire-server:
+        condition: service_healthy
+    # host PID namespace so the agent can resolve calling-workload PIDs, and the
+    # docker socket so the `docker` workload attestor can read container labels.
+    pid: "host"
+    privileged: true
+    # The join token is generated at runtime and exported by bootstrap.sh; docker
+    # compose interpolates ${SPIRE_AGENT_JOIN_TOKEN} into these args at parse time.
+    # We can't expand it inside the container — the SPIRE images are distroless, so
+    # there is no /bin/sh. The image entrypoint is already ["spire-agent","run"].
+    command:
+      - -config
+      - /opt/spire/conf/agent/agent.conf
+      - -joinToken
+      - ${SPIRE_AGENT_JOIN_TOKEN:-}
+    volumes:
+      - ./spire/agent/agent.conf:/opt/spire/conf/agent/agent.conf:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - spire-agent-sockets:/run/spire/sockets
+
+  dispatch:
+    build: .
+    depends_on: [spire-agent]
+    command: ["python", "-m", "services.dispatch.main"]
+    environment:
+      - SPIFFE_ENDPOINT_SOCKET=unix:///run/spire/sockets/api.sock
+      - DISPATCH_PORT=8443
+    volumes:
+      - spire-agent-sockets:/run/spire/sockets
+
+  order:
+    build: .
+    depends_on: [spire-agent, dispatch]
+    command: ["uvicorn", "services.order.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    environment:
+      - SPIFFE_ENDPOINT_SOCKET=unix:///run/spire/sockets/api.sock
+      - DISPATCH_HOST=dispatch
+      - DISPATCH_PORT=8443
+    ports:
+      - "8000:8000"
+    volumes:
+      - spire-agent-sockets:/run/spire/sockets
+
+  # The attacker. Not started by default; run on demand:
+  #   docker compose --profile attack run --rm omen
+  omen:
+    build: .
+    profiles: ["attack"]
+    depends_on: [spire-agent, dispatch]
+    command: ["python", "scripts/omen.py"]
+    environment:
+      - SPIFFE_ENDPOINT_SOCKET=unix:///run/spire/sockets/api.sock
+      - DISPATCH_HOST=dispatch
+      - DISPATCH_PORT=8443
+    volumes:
+      - spire-agent-sockets:/run/spire/sockets
+
+volumes:
+  spire-server-data:
+  spire-agent-sockets:
