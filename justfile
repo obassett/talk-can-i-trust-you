@@ -36,6 +36,28 @@ checkout:
 attack:
     docker compose --profile attack run --rm omen
 
+# ---- `<demo>-code`: print the code a demo runs, for showing on stage ----
+
+# print a source file, syntax-highlighted if `bat` is installed
+_code FILE:
+    @bat --style=plain --paging=never {{FILE}} 2>/dev/null || cat {{FILE}}
+
+# show the source behind each demo
+whoami-code:
+    @just _code scripts/whoami.py
+
+httpx-code:
+    @just _code scripts/httpx_demo.py
+
+jwt-code:
+    @just _code scripts/jwt_svid.py
+
+checkout-code:
+    @just _code services/order/main.py
+
+attack-code:
+    @just _code scripts/omen.py
+
 # follow all container logs
 logs:
     docker compose logs -f
