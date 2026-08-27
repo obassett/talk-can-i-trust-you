@@ -22,6 +22,28 @@ _When service A calls service B — how does B know it's really A?_
 
 <!-- end_slide -->
 
+AI Declaration
+==============
+
+<!-- newlines: 1 -->
+
+## AI assistance was used in producing this talk. Specifically:
+
+<!-- newlines: 1 -->
+
+- Refining the narrative flow and tightening the wording
+- Drafting and reviewing the code samples
+- Generating the slides from my outline
+- Generating the diagrams from my sketches
+- Sanity-checking technical claims against the docs
+
+<!-- newlines: 1 -->
+
+**The structure, argument, and final decisions are my own.**
+
+
+<!-- end_slide -->
+
 The Castle
 ==========
 
