@@ -523,6 +523,47 @@ Both directions authorized by identity. **No IP lists. No shared secrets.**
 
 <!-- end_slide -->
 
+DEMO · The Same Guarantee, Inside FastAPI
+=========================================
+
+```python
+# A normal FastAPI app. spiffetls does the identity check; the validated
+# caller arrives as an ordinary dependency.
+from fastapi import Depends, FastAPI
+from spiffe_demo.fastapi_mtls import require_caller   # wraps spiffetls.authorize_id
+
+app = FastAPI()
+only_order = require_caller("spiffe://acme.internal/ns/prod/sa/order-service")
+
+@app.post("/ship")
+def ship(order: ShipRequest, caller: SpiffeId = Depends(only_order)):
+    return {"server_spiffe_id": MY_ID, "client_spiffe_id": str(caller)}
+```
+
+<!-- newlines: 1 -->
+
+uvicorn terminates mTLS from the SVID + trust bundle (the chain check); `spiffetls`
+authorizes the specific SPIFFE ID. **Identity validation is one dependency.**
+
+<!-- newlines: 1 -->
+
+> 🔑 **`just fastapi-demo`** — order-service calls the dispatch-service listener; the JSON shows _both_ SPIFFE IDs.
+
+<!-- speaker_note: |
+  "Same guarantee, but now it's a plain FastAPI route. Two things to notice.
+  One: the caller isn't a header the client can set — it's the SPIFFE ID that
+  spiffetls pulled and validated from the client certificate the peer proved it
+  holds, handed to me as an ordinary dependency. Two: mTLS itself is enforced one
+  layer down by uvicorn using the SVID and trust bundle, so an anonymous caller
+  never even reaches the handler. The demo runs the listener as dispatch-service
+  and calls it as order-service — the response comes back showing both identities,
+  server and client. Point the same listener at a different authorize ID and a
+  valid-but-wrong caller gets a clean 403."
+-->
+
+
+<!-- end_slide -->
+
 Drop SPIFFE into httpx
 ======================
 
