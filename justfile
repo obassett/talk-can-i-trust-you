@@ -10,6 +10,10 @@ install:
 test:
     pytest
 
+# present the deck with presenterm (light for projector, dark for screen-share)
+slides theme="light":
+    cd docs && presenterm --theme {{theme}} slides.md
+
 # DEMO slide 27 — Order fetches its SPIFFE ID from the Workload API, no secret
 whoami:
     docker compose exec -T order python scripts/whoami.py
