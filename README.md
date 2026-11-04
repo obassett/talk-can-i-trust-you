@@ -28,6 +28,20 @@ Not "has a shared key." The right cryptographic identity, or nothing.
 | `spire/` | SPIRE server/agent config + registration entries |
 | `docker-compose.yml`, `scripts/bootstrap.sh` | One-command demo environment |
 
+## Presenting the slides
+
+The deck is [`docs/slides.md`](docs/slides.md), a terminal presentation for
+[presenterm](https://github.com/mfontanini/presenterm). Run it with:
+
+```bash
+just slides          # light theme (the default) — use this on a projector
+just slides dark     # dark theme — use this for screen-share
+just slides <theme>  # any other presenterm theme name
+```
+
+Use **light** on a projector and **dark** for screen-share. The diagrams are drawn to
+work on both backgrounds (see [`docs/diagrams/README.md`](docs/diagrams/README.md)).
+
 ## How it maps to the talk
 
 Each demo slide carries a 🔑 key — a `just` command you run live to show exactly
